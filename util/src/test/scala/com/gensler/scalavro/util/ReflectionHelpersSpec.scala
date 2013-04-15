@@ -14,9 +14,19 @@ class ReflectionHelpersSpec extends FlatSpec with ShouldMatchers {
     val NORTH, EAST, SOUTH, WEST = Value
   }
 
-  "The reflection helpers" should "return the enumeration tag for a given enum value" in {
+  class A
+  abstract class B extends A
+  case class C() extends A
+  case class D() extends B
+
+  "The reflection helpers object" should "return the enumeration tag for a given enum value" in {
     val et = enumForValue[Direction.type#Value]
     et.tpe =:= typeOf[Direction.type] should be (true)
+  }
+
+  it should "return the case class subtypes of a given type" in {
+    caseClassSubTypesOf[A] should have size (2)
+    caseClassSubTypesOf[B] should have size (1)
   }
 
 }

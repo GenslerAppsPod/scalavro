@@ -19,6 +19,9 @@ abstract class AvroNamedType[T: TypeTag] extends AvroComplexType[T] {
 
   final def fullyQualifiedName(): String = namespace.map { _ + "." + name } getOrElse name
 
+  protected[scalavro] override def canonicalFormOrFullyQualifiedName(): spray.json.JsValue =
+    this.fullyQualifiedName.toJson
+
   def fullyQualify(json: JsValue): JsValue = json match {
     case JsObject(fields) => new JsObject(ListMap(
       "name" -> fullyQualifiedName.toJson) ++

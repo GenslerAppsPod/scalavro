@@ -27,7 +27,7 @@ class AvroBytesIOSpec extends FlatSpec with ShouldMatchers {
   it should "read and write bytes" in {
     val text = "The quick brown fox jumped over the lazy dog."
     val out = new ByteArrayOutputStream
-    io.write(text.getBytes, out)
+    io.write(text.getBytes.toSeq, out)
 
     val bytes = out.toByteArray
     val in = new ByteArrayInputStream(bytes)

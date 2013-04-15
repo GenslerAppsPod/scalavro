@@ -11,20 +11,23 @@ import org.apache.avro.generic.{GenericData, GenericEnumSymbol, GenericDatumWrit
 import org.apache.avro.io.{EncoderFactory, DecoderFactory}
 
 import scala.util.{Try, Success, Failure}
+import scala.reflect.runtime.universe.TypeTag
+
 import java.io.{InputStream, OutputStream}
 
 case class AvroJEnumIO[E](avroType: AvroJEnum[E]) extends AvroTypeIO[E] {
 
   protected lazy val avroSchema: Schema = (new Parser) parse avroType.selfContainedSchema().toString
 
-  def asGeneric(obj: E): GenericEnumSymbol = new GenericData.EnumSymbol(avroSchema, obj.toString)
+  protected[scalavro] def asGeneric[T <: E : TypeTag](obj: T): GenericEnumSymbol =
+    new GenericData.EnumSymbol(avroSchema, obj.toString)
 
   def fromGeneric(obj: Any): E = obj match {
     case genericEnumSymbol: GenericEnumSymbol => avroType.symbolMap.get(genericEnumSymbol.toString).get
     case _ => throw new AvroDeserializationException[E]()(avroType.tag)
   }
 
-  def write(obj: E, stream: OutputStream) = {
+  def write[T <: E : TypeTag](obj: T, stream: OutputStream) = {
     try {
       val datumWriter = new GenericDatumWriter[GenericEnumSymbol](avroSchema)
       val encoder = EncoderFactory.get.binaryEncoder(stream, null)
@@ -32,22 +35,14 @@ case class AvroJEnumIO[E](avroType: AvroJEnum[E]) extends AvroTypeIO[E] {
       encoder.flush
     }
     catch { case cause: Throwable => 
-      throw new AvroSerializationException(obj, cause)(avroType.tag)
+      throw new AvroSerializationException(obj, cause)
     }
   }
 
   def read(stream: InputStream) = Try {
     val datumReader = new GenericDatumReader[GenericEnumSymbol](avroSchema)
-    val decoder = DecoderFactory.get.binaryDecoder(stream, null)
-
-    val symbolName = avroType.symbols(com.gensler.scalavro.io.primitive.AvroIntIO.read(stream).get)
-    avroType.symbolMap.get(symbolName).get
-
-    // the following *should* work, but it appears to read too many bytes...
-    // a bug in the reference implementation?
-
-//  this fromGeneric datumReader.read(null, decoder)
-
+    val decoder = DecoderFactory.get.directBinaryDecoder(stream, null)
+    this fromGeneric datumReader.read(null, decoder)
   }
 
 }

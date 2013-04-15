@@ -14,8 +14,16 @@ class AvroUnionSpec extends AvroSpec {
   val u1 = AvroType[Either[String, Int]]
 
   "AvroUnion" should "be parameterized with its corresponding Scala type" in {
-    u1.isInstanceOf[AvroUnion[_, _]] should be (true)
-    typeOf[u1.scalaType] =:= typeOf[Either[String, Int]] should be (true)
+    u1 match {
+      case avroType: AvroUnion[_] => {
+
+        println(avroType.union.typeMembers)
+
+        avroType.union.contains[String] should be (true)
+        avroType.union.contains[Int] should be (true)
+      }
+      case _ => fail
+    }
   }
 
   it should "be a complex AvroType" in {

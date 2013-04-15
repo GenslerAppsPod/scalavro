@@ -9,9 +9,15 @@ import com.gensler.scalavro.util.Union.{union, prove}
 
 class UnionSpec extends FlatSpec with ShouldMatchers {
 
+  def typeSubsetOf(a: Seq[Type], b: Seq[Type]): Boolean = {
+    a.foldLeft(true) { (result, tpe) =>
+      result && b.exists { _ =:= tpe}
+    }
+  }
+
   "The union type helpers" should "allow one to define unions" in {
 
-    type ISB = union [Int] #or [String] #or [Boolean] #apply
+    type ISB = union [Int] #or [String] #or [Boolean]
 
     def unionFunction[T : prove [ISB] #containsType](t: T) {}
 
@@ -22,7 +28,7 @@ class UnionSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "wrap union type definitions in a 'friendly' class" in {
-    val wrapped = new Union[union [Int] #or [String] #apply]
+    val wrapped = new Union[union [Int] #or [String]]
 
     wrapped.contains[Int] should be (true)
     wrapped.contains[String] should be (true)
@@ -42,15 +48,9 @@ class UnionSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "know its member types" in {
-    val wrapped = new Union[union [Int] #or [Double] #or [String] #or [Float] #apply]
-    val expectedMembers = Set(typeOf[Int], typeOf[Double], typeOf[String], typeOf[Float])
+    val wrapped = new Union[union [Int] #or [Double] #or [String] #or [Float]]
+    val expectedMembers = Seq(typeOf[Int], typeOf[Double], typeOf[String], typeOf[Float])
     val actualMembers = wrapped.typeMembers
-
-    def typeSubsetOf(a: Set[Type], b: Set[Type]): Boolean = {
-      a.foldLeft(true) { (result, tpe) =>
-        result && b.exists { _ =:= tpe}
-      }
-    }
 
     // A subset B AND B subset A => A == B
     typeSubsetOf(expectedMembers, actualMembers) should be (true)
@@ -62,6 +62,23 @@ class UnionSpec extends FlatSpec with ShouldMatchers {
     val unary = new Union[union [Int] #apply]
     unary.contains[Int] should be (true)
     unary.contains[Boolean] should be (false)
+  }
+
+  it should "build up Union instances one type at a time" in {
+    val unary = new Union[union [Int] #apply]
+    val binary = new Union[unary.underlying #or [String]]
+    val ternary = new Union[binary.underlying #or [Float]]
+
+    import scala.language.existentials
+    val t2 = Union.combine(binary.underlyingConjunctionTag, typeTag[Float])
+
+    ternary.contains[Int] should be (true)
+    ternary.contains[String] should be (true)
+    ternary.contains[Float] should be (true)
+
+    // A subset B AND B subset A => A == B
+    typeSubsetOf(ternary.typeMembers, t2.typeMembers) should be (true)
+    typeSubsetOf(t2.typeMembers, ternary.typeMembers) should be (true)
   }
 
 }

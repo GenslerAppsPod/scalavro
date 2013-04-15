@@ -10,20 +10,18 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericFixed
 
 import scala.util.{Try, Success, Failure}
+import scala.reflect.runtime.universe.TypeTag
+
 import java.io.{InputStream, OutputStream}
 
 case class AvroFixedIO(avroType: AvroFixed) extends AvroTypeIO[Seq[Byte]] {
 
   protected lazy val avroSchema: Schema = (new Parser) parse avroType.selfContainedSchema().toString
 
-  def asGeneric(obj: Seq[Byte]): GenericFixed = obj match {
-    case bytes: Seq[_] => {
-      new GenericData.Fixed(avroSchema, bytes.asInstanceOf[Seq[Byte]].toArray)
-    }
-    case _ => throw new AvroSerializationException(obj)(avroType.tag)
-  }
+  protected[scalavro] def asGeneric[T <: Seq[Byte] : TypeTag](bytes: T): GenericFixed =
+    new GenericData.Fixed(avroSchema, bytes.asInstanceOf[Seq[Byte]].toArray)
 
-  def fromGeneric(obj: Any): Seq[Byte] = obj match {
+  protected[scalavro] def fromGeneric(obj: Any): Seq[Byte] = obj match {
     case genericFixed: GenericFixed => {
       if (genericFixed.bytes.length == avroType.size) genericFixed.bytes.toSeq
       else throw new AvroDeserializationException()(avroType.tag)
@@ -31,7 +29,7 @@ case class AvroFixedIO(avroType: AvroFixed) extends AvroTypeIO[Seq[Byte]] {
     case _ => throw new AvroDeserializationException()(avroType.tag)
   }
 
-  def write(obj: Seq[Byte], stream: OutputStream) = ???
+  def write[T <: Seq[Byte] : TypeTag](obj: T, stream: OutputStream) = ???
 
   def read(stream: InputStream) = Try { ???.asInstanceOf[Seq[Byte]] }
 

@@ -13,6 +13,8 @@ import org.apache.avro.io.{EncoderFactory, DecoderFactory}
 import com.gensler.scalavro.io.AvroTypeIO.Implicits._
 
 import scala.util.{Try, Success, Failure}
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
+
 import java.io.{InputStream, OutputStream}
 
 case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
@@ -23,10 +25,10 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
     * Returns the [[org.apache.avro.generic.GenericRecord]] representation of
     * this AvroRecord.
     */
-  def asGeneric(obj: T): GenericRecord = {
+  protected[scalavro] def asGeneric[R <: T : TypeTag](obj: R): GenericRecord = {
     val record = new GenericData.Record(avroSchema)
     avroType.fields.foreach { field =>
-      ReflectionHelpers.productElement(obj, field.name)(avroType.tag, field.fieldType.tag) foreach { value =>
+      ReflectionHelpers.productElement(obj, field.name)(typeTag[R], field.fieldType.tag) foreach { value =>
         val io = avroTypeToIO(field.fieldType)
         record.put(field.name, io asGeneric value)
       }
@@ -34,7 +36,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
     return record
   }
 
-  def fromGeneric(obj: Any): T = obj match {
+  protected[scalavro] def fromGeneric(obj: Any): T = obj match {
     case record: GenericRecord => {
       ReflectionHelpers.instantiateCaseClassWith(
         avroType.fields map { field =>
@@ -49,7 +51,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
     * Writes a binary representation of the supplied object to the supplied
     * stream.
     */
-  def write(obj: T, stream: OutputStream) {
+  def write[R <: T : TypeTag](obj: R, stream: OutputStream) {
     try {
       val datumWriter = new GenericDatumWriter[GenericRecord](avroSchema)
       val encoder = EncoderFactory.get.binaryEncoder(stream, null)
@@ -57,7 +59,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
       encoder.flush
     }
     catch { case cause: Throwable => 
-      throw new AvroSerializationException(obj, cause)(avroType.tag)
+      throw new AvroSerializationException(obj, cause)
     }
   }
 
@@ -67,7 +69,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T] {
     */
   def read(stream: InputStream) = Try {
     val datumReader = new GenericDatumReader[GenericRecord](avroSchema)
-    val decoder = DecoderFactory.get.binaryDecoder(stream, null)
+    val decoder = DecoderFactory.get.directBinaryDecoder(stream, null)
     this fromGeneric datumReader.read(null, decoder)
   }
 

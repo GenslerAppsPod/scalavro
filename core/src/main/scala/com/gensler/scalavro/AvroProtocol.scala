@@ -123,7 +123,7 @@ object AvroProtocol {
   case class Message(
     request: Map[String, AvroRecord[_ <: Product]],
     response: AvroType[_],
-    errors: Option[AvroUnion[_, _]] = None,
+    errors: Option[AvroUnion[_]] = None,
     doc: Option[String] = None,
     oneWay: Option[Boolean] = None
   ) extends JsonSchemifiable with CanonicalForm {
@@ -162,7 +162,7 @@ object AvroProtocol {
       )
 
       val errorParam = Map("errors" -> errors) collect {
-        case (k, Some(union)) => (k, union.parsingCanonicalForm)
+        case (k, Some(union)) => (k, union.canonicalFormOrFullyQualifiedName)
       }
 
       val oneWayParam = Map("one-way" -> oneWay) collect {

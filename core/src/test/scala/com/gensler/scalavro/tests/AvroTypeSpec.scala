@@ -8,6 +8,7 @@ import com.gensler.scalavro.types.primitive._
 import com.gensler.scalavro.types.complex._
 import com.gensler.scalavro.AvroProtocol
 
+
 class AvroTypeSpec extends AvroSpec {
 
   // primitives
@@ -69,23 +70,64 @@ class AvroTypeSpec extends AvroSpec {
   }
 
   // unions
-  it should "return valid AvroUnion types for disjoint unions of two types" in {
-    AvroType.fromType[Either[Double, Int]] match {
-      case Success(avroType) => {
+  it should "return valid AvroUnion types subtypes of Either[A, B]" in {
+    AvroType[Either[Double, Int]] match {
+      case avroType: AvroUnion[_] => {
         // prettyPrint(avroType.schema)
 
-        avroType.isInstanceOf[AvroUnion[_, _]] should be (true)
-        typeOf[avroType.scalaType] =:= typeOf[Either[Double, Int]] should be (true)
+        avroType.union.contains[Double] should be (true)
+        avroType.union.contains[Int] should be (true)
       }
       case _ => fail
     }
 
-    AvroType.fromType[Either[Seq[Double], Map[String, Seq[Int]]]] match {
-      case Success(avroType) => {
+    AvroType[Either[Seq[Double], Map[String, Seq[Int]]]] match {
+      case avroType: AvroUnion[_] => {
+        // prettyPrint(avroType.schema)
+        
+        avroType.union.contains[Seq[Double]] should be (true)
+        avroType.union.contains[Map[String, Seq[Int]]] should be (true)
+      }
+      case _ => fail
+    }
+  }
+
+  it should "return valid AvroUnion types subtypes of Option[T]" in {
+    AvroType[Option[String]] match {
+      case avroType: AvroUnion[_] => {
         // prettyPrint(avroType.schema)
 
-        avroType.isInstanceOf[AvroUnion[_, _]] should be (true)
-        typeOf[avroType.scalaType] =:= typeOf[Either[Seq[Double], Map[String, Seq[Int]]]] should be (true)
+        avroType.union.contains[String] should be (true)
+        avroType.union.contains[Unit] should be (true)
+      }
+      case _ => fail
+    }
+  }
+
+  it should "return valid AvroUnion types subtypes of Union.not[A]" in {
+    import com.gensler.scalavro.util.Union._
+    AvroType[union [Int] #or [String] #or [Boolean]] match {
+      case avroType: AvroUnion[_] => {
+        // prettyPrint(avroType.schema)
+
+        avroType.union.typeMembers should have size (3)
+
+        avroType.union.contains[Int] should be (true)
+        avroType.union.contains[String] should be (true)
+        avroType.union.contains[Boolean] should be (true)
+      }
+      case _ => fail
+    }
+  }
+
+  it should "return valid AvroUnion types supertypes of case classes" in {
+    AvroType[Alpha] match {
+      case avroType: AvroUnion[_] => {
+         // prettyPrint(avroType.schema)
+
+        avroType.union.typeMembers should have size (2)
+        avroType.union.contains[Gamma] should be (true)
+        avroType.union.contains[Delta] should be (true)
       }
       case _ => fail
     }
@@ -94,8 +136,8 @@ class AvroTypeSpec extends AvroSpec {
   // records
   it should "return valid AvroRecord types for product types" in {
 
-    val personType = AvroType.fromType[Person].get
-    val santaListType = AvroType.fromType[SantaList].get
+    val personType = AvroType[Person]
+    val santaListType = AvroType[SantaList]
 
     // prettyPrint(personType.schema)
     // prettyPrint(personType.parsingCanonicalForm)
@@ -124,14 +166,16 @@ class AvroTypeSpec extends AvroSpec {
 
   it should "detect dependencies among AvroRecord types" in {
     import com.gensler.scalavro.error.CyclicTypeDependencyException
-    evaluating { AvroType.fromType[A].get } should produce [CyclicTypeDependencyException]
-    evaluating { AvroType.fromType[B].get } should produce [CyclicTypeDependencyException]
+    evaluating { AvroType[A] } should produce [CyclicTypeDependencyException]
+    evaluating { AvroType[B] } should produce [CyclicTypeDependencyException]
   }
 
   it should "construct protocol definitions" in {
 
-    val greetingType = AvroType.fromType[Greeting].get.asInstanceOf[AvroRecord[Greeting]]
-    val curseType = AvroType.fromType[Curse].get.asInstanceOf[AvroRecord[Curse]]
+    import com.gensler.scalavro.util.Union._
+
+    val greetingType = AvroType[Greeting].asInstanceOf[AvroRecord[Greeting]]
+    val curseType = AvroType[Curse].asInstanceOf[AvroRecord[Curse]]
 
     val hwProtocol = AvroProtocol(
 
@@ -141,12 +185,18 @@ class AvroTypeSpec extends AvroSpec {
 
       messages = Map(
                   "hello" -> AvroProtocol.Message(
-                    request = Map(
+
+                    request  = Map(
                       "greeting" -> greetingType
                     ),
+
                     response = greetingType,
-                    errors = Some(AvroType.fromType[Either[Curse, String]].get.asInstanceOf[AvroUnion[_, _]]),
-                    doc = Some("Say hello.")
+
+                    errors   = AvroType.fromType[union [Curse] #apply].map{
+                      _.asInstanceOf[AvroUnion[_]]
+                    }.toOption,
+
+                    doc      = Some("Say hello.")
                   )
                  ),
 

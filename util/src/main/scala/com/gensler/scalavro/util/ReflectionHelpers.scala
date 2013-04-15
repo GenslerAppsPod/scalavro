@@ -41,6 +41,47 @@ trait ReflectionHelpers {
     tagForType(enclosing).asInstanceOf[TypeTag[_ <: Enumeration]]
   }
 
+  private lazy val reflections = {
+    import org.reflections.Reflections
+    import org.reflections.util.{ConfigurationBuilder, FilterBuilder}
+    import org.reflections.scanners.SubTypesScanner
+
+    val classFilter = new FilterBuilder
+    classFilter.excludePackage("java")
+    classFilter.excludePackage("scala")
+
+    val urls = getClass.getClassLoader.asInstanceOf[java.net.URLClassLoader].getURLs
+
+    val configBuilder = new ConfigurationBuilder
+    configBuilder setUrls (urls: _*)
+    configBuilder.useParallelExecutor() // scan using # available processors
+    configBuilder filterInputsBy classFilter
+    configBuilder setScanners new SubTypesScanner(false)
+
+    configBuilder.build
+  }
+
+  /**
+    * Returns all currently loaded case class subtypes of the supplied type.
+    */
+  protected[scalavro] def caseClassSubTypesOf[S : TypeTag]: Seq[Type] = {
+    import scala.collection.JavaConversions.asScalaSet
+    import java.lang.reflect.Modifier
+
+    // filter out abstract classes
+    val subClassSymbols = asScalaSet(
+      reflections.getSubTypesOf(classLoaderMirror.runtimeClass(typeOf[S]))
+    ).collect {
+      case clazz: Class[_] if ! Modifier.isAbstract(clazz.getModifiers) =>
+        classLoaderMirror classSymbol clazz
+    }
+
+    // filter class symbols to include only case classes with no type parameters
+    subClassSymbols.collect {
+      case sym: ClassSymbol if (sym.isCaseClass && sym.typeParams.isEmpty) => sym.selfType
+    }.toSeq
+  }
+
   /**
     * Returns a map from formal parameter names to type tags, containing one
     * mapping for each constructor argument.  The resulting map (a ListMap)

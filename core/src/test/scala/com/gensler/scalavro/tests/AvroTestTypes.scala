@@ -11,3 +11,9 @@ case class B(a: A)
 // types for protocol testing
 case class Greeting(message: String)
 case class Curse(message: String)
+
+class Alpha
+abstract class Beta extends Alpha
+case class Gamma() extends Alpha
+case class Delta() extends Beta
+case class Epsilon[T]() extends Beta
