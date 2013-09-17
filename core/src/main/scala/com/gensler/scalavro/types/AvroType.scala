@@ -6,11 +6,11 @@ import com.gensler.scalavro.types.primitive._
 import com.gensler.scalavro.types.complex._
 import com.gensler.scalavro.error._
 import com.gensler.scalavro.JsonSchemaProtocol._
+import com.gensler.scalavro.io.AvroTypeIO
 import com.gensler.scalavro.util.Logging
 
 import scala.util.{ Try, Success, Failure }
 import scala.language.existentials
-import scala.reflect.api.{ Universe, Mirror, TypeCreator }
 import scala.reflect.runtime.universe._
 
 import spray.json._
@@ -165,6 +165,11 @@ abstract class AvroType[T: TypeTag] extends JsonSchemifiable with CanonicalForm 
       case at: AvroNamedType[_] => Seq(at)
     }
   }.distinct
+
+  /**
+    * Returns an [[AvroTypeIO]] instance for this AvroType.
+    */
+  lazy val io: AvroTypeIO[T] = AvroTypeIO.avroTypeToIO(this)
 
 }
 

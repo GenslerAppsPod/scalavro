@@ -2,6 +2,20 @@
 
 A runtime reflection-based Avro library in Scala.
 
+A full description of Avro is outside the scope of this documentation, but here is an introduction from [avro.apache.org](http://avro.apache.org/docs/current):
+
+> __[Apache Avro &trade;](http://avro.apache.org)__ is a data serialization system.
+>
+> Avro provides:
+> 
+> - Rich data structures.
+> - A compact, fast, binary data format.
+> - A container file, to store persistent data.
+> - Remote procedure call (RPC).
+> - Simple integration with dynamic languages. Code generation is not required to read or write data files nor to use or implement RPC protocols. Code generation as an optional optimization, only worth implementing for statically typed languages.
+>
+>Avro provides functionality similar to systems such as __[Thrift](http://thrift.apache.org)__, __[Protocol Buffers](http://code.google.com/p/protobuf/)__, etc.
+
 Scalavro takes a code-first, reflection based approach to schema generation and (de)serialization.  This yields a very low-overhead interface, and imposes some costs.  In general, Scalavro assumes you know what types you're reading and writing.  No built-in support is provided (as yet) for so-called schema resolution (taking the writer's schema into account when reading data).
 
 ## Goals
@@ -13,17 +27,17 @@ Scalavro takes a code-first, reflection based approach to schema generation and 
 
 ## Obtaining Scalavro
 
-The `Scalavro` artifacts are available from Maven Central. The current release is `0.3.1`, built against Scala 2.10.2.
+The `Scalavro` artifacts are available from Maven Central. The current release is `0.4.0`, built against Scala 2.10.2.
 
 Using SBT:
 
 ```scala
-libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
+libraryDependencies += "com.gensler" %% "scalavro" % "0.4.0"
 ```
 
 ## API Documentation
 
-- Generated [Scaladoc for version 0.3.1](http://genslerappspod.github.io/scalavro/api/0.3.1/index.html#com.gensler.scalavro.package)
+- Generated [Scaladoc for version 0.4.0](http://genslerappspod.github.io/scalavro/api/0.4.0/index.html#com.gensler.scalavro.package)
 
 ## Index of Examples
 
@@ -57,7 +71,7 @@ libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
     </tr>
     <tr>
       <td><code>
-        Boolean
+        Boolean        
       </code></td>
       <td><code>
         boolean
@@ -173,7 +187,7 @@ libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
       </code></td>
     </tr>
     <tr>
-      <td><code>
+       <td><code>
         scala.Enumeration#Value
       </code></td>
       <td><code>
@@ -188,7 +202,7 @@ libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
       </code></td>
     </tr>
     <tr>
-      <td><code>
+       <td><code>
         scala.util.Either[A, B]
       </code></td>
       <td><code>
@@ -196,7 +210,7 @@ libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
       </code></td>
     </tr>
     <tr>
-      <td><code>
+       <td><code>
         scala.util.Option[T]
       </code></td>
       <td><code>
@@ -204,7 +218,7 @@ libraryDependencies += "com.gensler" %% "scalavro-io" % "0.3.1"
       </code></td>
     </tr>
     <tr>
-      <td><code>
+       <td><code>
         com.gensler.scalavro.util.Union[U]
       </code></td>
       <td><code>
@@ -574,7 +588,6 @@ Note that in the above example:
 ```scala
 import com.gensler.scalavro.AvroType
 import com.gensler.scalavro.io.AvroTypeIO
-import com.gensler.scalavro.io.AvroTypeIO.Implicits._
 import scala.util.{Try, Success, Failure}
 
 case class Person(name: String, age: Int)
@@ -592,19 +605,24 @@ val santaList = SantaList(
 )
 
 val santaListType = AvroType[SantaList]
-val santaListIO = santaListType.io // implicitly: AvroTypeIO[SantaList]
 
 val outStream: java.io.OutputStream = // some stream...
 
-santaListIO.write(santaList, outStream)
+santaListType.io.write(santaList, outStream)
 
 val inStream: java.io.InputStream = // some stream...
 
-santaListIO.read(inStream) match {
+santaListType.io.read(inStream) match {
   case Success(readResult) => // readResult is an instance of SantaList
   case Failure(cause)      => // handle failure...
 }
 ```
+
+### A Neat Fact about Scalavro's IO Capabilities
+
+Scalavro tries to produce read results whose runtime types are as accurate as possible for colections (the supported collection types are `Seq`, `Set`, and `Map`).  It accomplishes this by looking for a public varargs `apply` factory method on the target type's companion object.  This is why `AvroType[ArrayBuffer[Int]].io.read(…)` is able to return a `Try[ArrayBuffer[Int]]`.
+
+This works for custom subtypes of the supported collections types -- as long as you define a public varargs `apply` in the companion you're good to go.
 
 ## Reference
 1. [Current Apache Avro Specification](http://avro.apache.org/docs/current/spec.html)
