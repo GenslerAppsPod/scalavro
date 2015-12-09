@@ -1,22 +1,16 @@
 package com.gensler.scalavro.io
 
+import java.io.{ InputStream, OutputStream }
+
 import com.gensler.scalavro.error._
-import com.gensler.scalavro.types.{ AvroType, AvroPrimitiveType }
-
-import org.apache.avro.io.{
-  EncoderFactory,
-  DecoderFactory,
-  BinaryEncoder,
-  BinaryDecoder
-}
-
-import scala.collection.mutable
-import scala.util.{ Try, Success, Failure }
-import scala.reflect.runtime.universe.TypeTag
-
+import com.gensler.scalavro.types.{ AvroPrimitiveType, AvroType }
+import org.apache.avro.Schema
+import org.apache.avro.io.{ BinaryDecoder, BinaryEncoder, DecoderFactory, EncoderFactory }
 import spray.json._
 
-import java.io.{ InputStream, OutputStream }
+import scala.collection.mutable
+import scala.reflect.runtime.universe.TypeTag
+import scala.util.Try
 
 abstract class AvroTypeIO[T: TypeTag] {
 
@@ -67,9 +61,10 @@ abstract class AvroTypeIO[T: TypeTag] {
     * the supplied binary stream.
     */
   @throws[AvroDeserializationException[_]]
-  def read(stream: InputStream): Try[T] = Try {
+  def read(stream: InputStream, writerSchema: Option[Schema] = None): Try[T] = Try {
     val decoder = DecoderFactory.get.directBinaryDecoder(stream, null)
-    read(decoder, mutable.ArrayBuffer[Any](), true)
+    writerSchema.map(read(decoder, mutable.ArrayBuffer[Any](), true, _))
+      .getOrElse(read(decoder, mutable.ArrayBuffer[Any](), true))
   }
 
   /**
@@ -77,10 +72,21 @@ abstract class AvroTypeIO[T: TypeTag] {
     * the supplied decoder.
     */
   @throws[AvroDeserializationException[_]]
-  protected[scalavro] def read(
+  private[scalavro] def read(
     decoder: BinaryDecoder,
     references: mutable.ArrayBuffer[Any],
     topLevel: Boolean): T
+
+  /**
+    * Attempts to create an object of type T by reading the required data from
+    * the supplied decoder.
+    */
+  @throws[AvroDeserializationException[_]]
+  private[scalavro] def read(
+    decoder: BinaryDecoder,
+    references: mutable.ArrayBuffer[Any],
+    topLevel: Boolean,
+    writerSchema: Schema): T = read(decoder, references, topLevel)
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING
@@ -120,15 +126,13 @@ abstract class AvroTypeIO[T: TypeTag] {
   */
 object AvroTypeIO {
 
-  import scala.language.implicitConversions
-
-  import com.gensler.scalavro.types.primitive._
-  import com.gensler.scalavro.io.primitive._
-  import com.gensler.scalavro.util.Union
-  import com.gensler.scalavro.util.FixedData
-
-  import com.gensler.scalavro.types.complex._
   import com.gensler.scalavro.io.complex._
+  import com.gensler.scalavro.io.primitive._
+  import com.gensler.scalavro.types.complex._
+  import com.gensler.scalavro.types.primitive._
+  import com.gensler.scalavro.util.{ FixedData, Union }
+
+  import scala.language.implicitConversions
 
   // primitive types
   private def avroTypeToIO[T](avroType: AvroPrimitiveType[T]): AvroTypeIO[T] =
