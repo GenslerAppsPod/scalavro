@@ -12,6 +12,8 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.util.Success
 
+case class WithDefaultValue(a: String, b: String = "default")
+
 class SchemaResolutionSpec extends FlatSpec with Matchers {
 
   def toBytes(record: GenericData.Record) = {
@@ -31,7 +33,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
   it should "handle reordered fields" in {
     val name = "test name"
     val age = 56
-    val WriterSchema = new Parser().parse(
+    val writerSchema = new Parser().parse(
       """
         |{
         | "name":"com.gensler.scalavro.test.Person",
@@ -49,14 +51,14 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
         |}
       """.stripMargin)
     val data = toBytes({
-      val p = new Record(WriterSchema)
+      val p = new Record(writerSchema)
       p.put("age", age)
       p.put("name", name)
       p
     })
     val personType = AvroType[Person]
 
-    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(WriterSchema))
+    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(writerSchema))
     person.name should equal(name)
     person.age should equal(age)
   }
@@ -64,7 +66,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
   it should "ignore field when the writer's record contains a field with a name not present in the reader's record" in {
     val name = "test name"
     val age = 56
-    val WriterSchema = new Parser().parse(
+    val writerSchema = new Parser().parse(
       """
         |{
         | "name":"com.gensler.scalavro.test.Person",
@@ -86,7 +88,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
         |}
       """.stripMargin)
     val data = toBytes({
-      val p = new Record(WriterSchema)
+      val p = new Record(writerSchema)
       p.put("age", age)
       p.put("to_ignore", 12)
       p.put("name", name)
@@ -94,9 +96,34 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
     })
     val personType = AvroType[Person]
 
-    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(WriterSchema))
+    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(writerSchema))
     person.name should equal(name)
     person.age should equal(age)
+  }
+
+  it should "use default when missing" in {
+    val writerSchema = new Parser().parse(
+      """
+        |{
+        | "name":"WithDefaultValue",
+        | "type":"record",
+        | "fields":[
+        |   {
+        |     "name":"a",
+        |     "type":["null","string"]
+        |   }
+        | ]
+        |}
+      """.stripMargin)
+    val data = toBytes({
+      val p = new Record(writerSchema)
+      p.put("a", "test value")
+      p
+    })
+
+    val Success(record) = AvroType[WithDefaultValue].io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    record.a should equal("test value")
+    record.b should equal("default")
   }
 
 }

@@ -160,7 +160,11 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T]()(avro
                       )
         )
         .toMap
-      val args = avroType.fields.map(field => values(field.name))
+      val args = avroType.fields.map(field => values
+                                      .get(field.name)
+                                      .getOrElse(field.default
+                                                  .getOrElse(throw new NoSuchElementException(s"missing value of field ${field.name}"))))
+
       val result = factory buildWith args
       references append result
       result
