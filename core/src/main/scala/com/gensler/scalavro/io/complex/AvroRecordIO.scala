@@ -6,7 +6,8 @@ import com.gensler.scalavro.io.primitive.AvroLongIO
 import com.gensler.scalavro.types.complex.AvroRecord
 import com.gensler.scalavro.util.ReflectionHelpers
 import org.apache.avro.Schema
-import org.apache.avro.io.{BinaryDecoder, BinaryEncoder}
+import org.apache.avro.generic.{GenericRecord, GenericDatumReader}
+import org.apache.avro.io.{Decoder, BinaryDecoder, BinaryEncoder}
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -143,11 +144,21 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T]()(avro
     }
   }
 
+  private def skipRecord(schema: Schema, in: Decoder) = {
+    new GenericDatumReader[Any](schema).read(null, in)
+    ()
+  }
   private def readObject(decoder: BinaryDecoder, references: mutable.ArrayBuffer[Any], writerSchema: Schema): T = {
     try {
       val readers: Map[String, AvroTypeIO[_]] = avroType.fields.map(field => (field.name, field.fieldType.io)).toMap
       val values = writerSchema.getFields
-        .map(field => (field.name(), readers(field.name()).read(decoder, references, false, field.schema)))
+        .map(field => (
+                        field.name(),
+                        readers.get(field.name())
+                                .map(_.read(decoder, references, false, field.schema))
+                                .getOrElse(skipRecord(field.schema, decoder))
+                      )
+        )
         .toMap
       val args = avroType.fields.map(field => values(field.name))
       val result = factory buildWith args

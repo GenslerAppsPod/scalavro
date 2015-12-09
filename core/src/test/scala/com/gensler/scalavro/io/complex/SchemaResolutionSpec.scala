@@ -61,4 +61,42 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
     person.age should equal(age)
   }
 
+  it should "ignore field when the writer's record contains a field with a name not present in the reader's record" in {
+    val name = "test name"
+    val age = 56
+    val WriterSchema = new Parser().parse(
+      """
+        |{
+        | "name":"com.gensler.scalavro.test.Person",
+        | "type":"record",
+        | "fields":[
+        |   {
+        |     "name":"age",
+        |     "type":"int"
+        |   },
+        |   {
+        |     "name":"to_ignore",
+        |     "type":"int"
+        |   },
+        |   {
+        |     "name":"name",
+        |     "type":["null","string"]
+        |   }
+        | ]
+        |}
+      """.stripMargin)
+    val data = toBytes({
+      val p = new Record(WriterSchema)
+      p.put("age", age)
+      p.put("to_ignore", 12)
+      p.put("name", name)
+      p
+    })
+    val personType = AvroType[Person]
+
+    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(WriterSchema))
+    person.name should equal(name)
+    person.age should equal(age)
+  }
+
 }
