@@ -61,7 +61,7 @@ abstract class AvroTypeIO[T: TypeTag] {
     * the supplied binary stream.
     */
   @throws[AvroDeserializationException[_]]
-  def read(stream: InputStream, writerSchema: Option[Schema] = None): Try[T] = Try {
+  final def read(stream: InputStream, writerSchema: Option[Schema] = None): Try[T] = Try {
     val decoder = DecoderFactory.get.directBinaryDecoder(stream, null)
     writerSchema.map(read(decoder, mutable.ArrayBuffer[Any](), true, _))
       .getOrElse(read(decoder, mutable.ArrayBuffer[Any](), true))

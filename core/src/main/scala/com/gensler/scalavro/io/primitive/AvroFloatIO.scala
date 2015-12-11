@@ -2,6 +2,7 @@ package com.gensler.scalavro.io.primitive
 
 import com.gensler.scalavro.types.primitive.AvroFloat
 import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
+import org.apache.avro.Schema
 
 import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
 
@@ -23,7 +24,14 @@ trait AvroFloatIO extends AvroPrimitiveTypeIO[Float] {
     value: Float,
     encoder: BinaryEncoder): Unit = encoder writeFloat value
 
-  def read(decoder: BinaryDecoder) = decoder.readFloat
+  override protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]) =
+    writerSchema.map { schema =>
+      schema.getType match {
+        case Schema.Type.FLOAT => decoder.readFloat
+        case Schema.Type.LONG  => decoder.readLong
+        case Schema.Type.INT   => decoder.readInt
+      }
+    }.getOrElse(decoder.readFloat)
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING

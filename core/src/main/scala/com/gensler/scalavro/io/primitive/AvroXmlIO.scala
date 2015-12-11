@@ -2,6 +2,7 @@ package com.gensler.scalavro.io.primitive
 
 import com.gensler.scalavro.types.primitive.AvroXml
 import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
+import org.apache.avro.Schema
 
 import org.apache.avro.generic.GenericData
 import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
@@ -25,8 +26,8 @@ trait AvroXmlIO extends AvroNullablePrimitiveTypeIO[Node] {
     value: Node,
     encoder: BinaryEncoder): Unit = AvroStringIO.write(value.toString, encoder)
 
-  def read(decoder: BinaryDecoder) =
-    AvroStringIO.read(decoder) match {
+  override private[scalavro] def readNotNull(decoder: BinaryDecoder, writerSchema: Option[Schema]) =
+    AvroStringIO.readNotNull(decoder, writerSchema) match {
       case xml: String => XML.loadString(xml)
       case null        => null
     }

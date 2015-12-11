@@ -1,13 +1,13 @@
 package com.gensler.scalavro.io.complex
 
-import com.gensler.scalavro.error.{AvroDeserializationException, AvroSerializationException}
+import com.gensler.scalavro.error.{ AvroDeserializationException, AvroSerializationException }
 import com.gensler.scalavro.io.AvroTypeIO
 import com.gensler.scalavro.io.primitive.AvroLongIO
 import com.gensler.scalavro.types.complex.AvroRecord
 import com.gensler.scalavro.util.ReflectionHelpers
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericRecord, GenericDatumReader}
-import org.apache.avro.io.{Decoder, BinaryDecoder, BinaryEncoder}
+import org.apache.avro.generic.{ GenericRecord, GenericDatumReader }
+import org.apache.avro.io.{ Decoder, BinaryDecoder, BinaryEncoder }
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -19,7 +19,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T]()(avro
 
   implicit val tt: TypeTag[T] = avroType.tag
 
-  import ReflectionHelpers.{CaseClassFactory, ProductElementExtractor}
+  import ReflectionHelpers.{ CaseClassFactory, ProductElementExtractor }
 
   protected[this] lazy val extractors: Map[String, ProductElementExtractor[T, _]] = {
     avroType.fields.map { field => field.name -> extractorFor(field) }.toMap
@@ -153,17 +153,17 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T]()(avro
       val readers: Map[String, AvroTypeIO[_]] = avroType.fields.map(field => (field.name, field.fieldType.io)).toMap
       val values = writerSchema.getFields
         .map(field => (
-                        field.name(),
-                        readers.get(field.name())
-                                .map(_.read(decoder, references, false, field.schema))
-                                .getOrElse(skipRecord(field.schema, decoder))
-                      )
+          field.name(),
+          readers.get(field.name())
+          .map(_.read(decoder, references, false, field.schema))
+          .getOrElse(skipRecord(field.schema, decoder))
+        )
         )
         .toMap
       val args = avroType.fields.map(field => values
-                                      .get(field.name)
-                                      .getOrElse(field.default
-                                                  .getOrElse(throw new NoSuchElementException(s"missing value of field ${field.name}"))))
+        .get(field.name)
+        .getOrElse(field.default
+          .getOrElse(throw new NoSuchElementException(s"missing value of field ${field.name}"))))
 
       val result = factory buildWith args
       references append result
@@ -171,7 +171,7 @@ case class AvroRecordIO[T](avroType: AvroRecord[T]) extends AvroTypeIO[T]()(avro
     }
     catch {
       case cause: Throwable =>
-        throw new AvroDeserializationException[T]( cause, cause.getMessage )
+        throw new AvroDeserializationException[T](cause, cause.getMessage)
     }
   }
 
