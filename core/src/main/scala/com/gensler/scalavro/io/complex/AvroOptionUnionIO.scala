@@ -1,20 +1,16 @@
 package com.gensler.scalavro.io.complex
 
-import com.gensler.scalavro.io.AvroTypeIO
+import com.gensler.scalavro.error.AvroDeserializationException
 import com.gensler.scalavro.io.primitive.{ AvroLongIO, AvroNullIO }
-import com.gensler.scalavro.types.{ AvroType, AvroComplexType, AvroNamedType, AvroPrimitiveType }
+import com.gensler.scalavro.types._
 import com.gensler.scalavro.types.complex.AvroUnion
-import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
 import com.gensler.scalavro.util.Union
-import com.gensler.scalavro.util.Union._
-
-import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
-
+import org.apache.avro.io.{ BinaryDecoder, BinaryEncoder }
 import spray.json._
 
 import scala.collection.mutable
-import scala.util.{ Try, Success, Failure }
 import scala.reflect.runtime.universe._
+import scala.util.Try
 
 private[scalavro] case class AvroOptionUnionIO[U <: Union.not[_]: TypeTag, T <: Option[_]: TypeTag](
     avroType: AvroUnion[U, T]) extends AvroUnionIO[U, T] {
@@ -38,7 +34,12 @@ private[scalavro] case class AvroOptionUnionIO[U <: Union.not[_]: TypeTag, T <: 
     references: mutable.Map[Any, Long],
     topLevel: Boolean): Unit = {
 
-    AvroLongIO.write(if (obj.isDefined) NON_NULL_INDEX else NULL_INDEX, encoder)
+    if (!obj.isDefined) {
+      AvroLongIO.write(NULL_INDEX, encoder)
+    }
+    else if (!innerAvroType.isInstanceOf[AvroNullablePrimitiveType[_]]) {
+      AvroLongIO.write(NON_NULL_INDEX, encoder)
+    }
     writeHelper(obj, encoder, references, topLevel)(typeTag[X], innerAvroType.tag)
   }
 
@@ -65,19 +66,21 @@ private[scalavro] case class AvroOptionUnionIO[U <: Union.not[_]: TypeTag, T <: 
     readHelper(decoder, references)(innerAvroType.tag).asInstanceOf[T]
   }
 
-  def readHelper[A: TypeTag](
+  private def readHelper[A: TypeTag](
     decoder: BinaryDecoder,
     references: mutable.ArrayBuffer[Any]) = {
 
-    (AvroLongIO read decoder) match {
-      case NULL_INDEX => None
-      case NON_NULL_INDEX => Some(
-        innerAvroType.io.read(decoder, references, false).asInstanceOf[A]
-      )
-      case index: Long => throw new AvroDeserializationException[T](
-        detailedMessage = "Encountered an index that was not zero or one: [%s]".format(index)
-      )
-    }
+    if (!innerAvroType.isInstanceOf[AvroNullablePrimitiveType[_]])
+      (AvroLongIO read decoder) match {
+        case NULL_INDEX => None
+        case NON_NULL_INDEX => Some(
+          innerAvroType.io.read(decoder, references, false).asInstanceOf[A]
+        )
+        case index: Long => throw new AvroDeserializationException[T](
+          detailedMessage = "Encountered an index that was not zero or one: [%s]".format(index)
+        )
+      }
+    else Option(innerAvroType.io.read(decoder, references, false).asInstanceOf[A])
   }
 
   ////////////////////////////////////////////////////////////////////////////

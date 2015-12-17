@@ -1,19 +1,19 @@
 package com.gensler.scalavro.io.complex.test
 
-import scala.util.{ Try, Success, Failure }
-import scala.reflect.runtime.universe._
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
-
+import com.gensler.scalavro.io.complex._
 import com.gensler.scalavro.test._
 import com.gensler.scalavro.types._
-import com.gensler.scalavro.types.complex._
-import com.gensler.scalavro.io.complex._
-import com.gensler.scalavro.error._
 import com.gensler.scalavro.util.Union._
+import org.apache.avro.Schema
+import org.scalatest.{ FlatSpec, Matchers }
 
-import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
+import scala.reflect.runtime.universe._
+import scala.util.Success
+
+case class OptionalStringField(a: Option[String])
+case class NullableStringField(a: String)
 
 class AvroUnionIOSpec extends FlatSpec with Matchers {
 
@@ -21,6 +21,47 @@ class AvroUnionIOSpec extends FlatSpec with Matchers {
 
   val unionType = AvroType[Either[Int, String]]
   val io = unionType.io
+
+  val optionalStringFieldType = AvroType[OptionalStringField]
+  val nullableStringFieldSchema = new Schema.Parser().parse(
+    """
+      |{
+      | "name":"OptionalStringField",
+      | "namespace":"com.gensler",
+      | "type":"record",
+      | "fields":[{"name":"a", "type":["null","string"]}]
+      |}
+    """.stripMargin)
+
+  val nullableStringFieldType = AvroType[NullableStringField]
+
+  private def checkOutput[T: TypeTag](value: String, createRecord: (String) => T) = {
+    val javaapi = toHex(write(nullableStringFieldSchema) { record =>
+      record.put("a", value)
+    })
+    val scalavro = toHex(write(createRecord(value)))
+
+    javaapi should equal(scalavro)
+  }
+  private def checkOptionalStringOutput(value: String) = checkOutput(value, (v: String) => OptionalStringField(Option(v)))
+
+  "java api and scalavro" should "produce the same output for present optional value" in {
+    checkOptionalStringOutput(value = "c")
+  }
+
+  "java api and scalavro" should "produce the same output for absent optional value" in {
+    checkOptionalStringOutput(value = null)
+  }
+
+  private def checkNullableStringOutput(value: String) = checkOutput(value, NullableStringField.apply)
+
+  "java api and scalavro" should "produce the same output for absent nullable value" in {
+    checkNullableStringOutput(value = null)
+  }
+
+  "java api and scalavro" should "produce the same output for present nullable value" in {
+    checkNullableStringOutput(value = "d")
+  }
 
   "AvroUnionIO" should "be the AvroTypeIO for AvroUnion" in {
     io.isInstanceOf[AvroUnionIO[_, _]] should be (true)
