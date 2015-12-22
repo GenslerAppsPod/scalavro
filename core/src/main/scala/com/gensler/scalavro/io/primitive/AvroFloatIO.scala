@@ -28,8 +28,9 @@ trait AvroFloatIO extends AvroPrimitiveTypeIO[Float] {
     writerSchema.map { schema =>
       schema.getType match {
         case Schema.Type.FLOAT => decoder.readFloat
-        case Schema.Type.LONG  => decoder.readLong
-        case Schema.Type.INT   => decoder.readInt
+        case Schema.Type.LONG  => decoder.readLong.toFloat
+        case Schema.Type.INT   => decoder.readInt.toFloat
+        case _                 => throw new AvroDeserializationException[Float](detailedMessage = s"cannot convert from ${schema.getType} to float")
       }
     }.getOrElse(decoder.readFloat)
 
