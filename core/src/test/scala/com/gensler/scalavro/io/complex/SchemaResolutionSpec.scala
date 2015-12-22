@@ -62,7 +62,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
     })
     val personType = AvroType[Person]
 
-    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(person) = personType.io.read(new ByteArrayInputStream(data), writerSchema)
     person.name should equal(name)
     person.age should equal(age)
   }
@@ -100,7 +100,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
     })
     val personType = AvroType[Person]
 
-    val Success(person) = personType.io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(person) = personType.io.read(new ByteArrayInputStream(data), writerSchema)
     person.name should equal(name)
     person.age should equal(age)
   }
@@ -125,7 +125,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
       p
     })
 
-    val Success(record) = AvroType[WithDefaultValue].io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(record) = AvroType[WithDefaultValue].io.read(new ByteArrayInputStream(data), writerSchema)
     record.a should equal("test value")
     record.b should equal("default")
   }
@@ -159,7 +159,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
       p
     })
 
-    val result = readerAvroType.io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val result = readerAvroType.io.read(new ByteArrayInputStream(data), writerSchema)
     result match {
       case Success(record) => assertion(record)
       case Failure(ex)     => fail(ex)
@@ -228,7 +228,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
       p
     })
 
-    val Success(record) = AvroType[StringField].io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(record) = AvroType[StringField].io.read(new ByteArrayInputStream(data), writerSchema)
     record.text should equal("test value")
   }
 
@@ -252,7 +252,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
       p
     })
 
-    val Success(record) = AvroType[StringField].io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(record) = AvroType[StringField].io.read(new ByteArrayInputStream(data), writerSchema)
     record.text should equal("test value")
   }
 
@@ -276,7 +276,7 @@ class SchemaResolutionSpec extends FlatSpec with Matchers {
       p
     })
 
-    val Success(record) = AvroType[BytesField].io.read(new ByteArrayInputStream(data), Option(writerSchema))
+    val Success(record) = AvroType[BytesField].io.read(new ByteArrayInputStream(data), writerSchema)
     new String(record.data.toArray, "UTF-8") should equal("test data")
   }
 

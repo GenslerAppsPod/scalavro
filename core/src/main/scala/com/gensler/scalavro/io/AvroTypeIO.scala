@@ -1,10 +1,12 @@
 package com.gensler.scalavro.io
 
-import java.io.{ InputStream, OutputStream }
+import java.io.{ ByteArrayInputStream, InputStream, OutputStream }
 
 import com.gensler.scalavro.error._
+import com.gensler.scalavro.io.AvroTypeIO.{ ToSchema, ToStream }
 import com.gensler.scalavro.types.{ AvroPrimitiveType, AvroType }
 import org.apache.avro.Schema
+import org.apache.avro.Schema.Parser
 import org.apache.avro.io.{ BinaryDecoder, BinaryEncoder, DecoderFactory, EncoderFactory }
 import spray.json._
 
@@ -61,10 +63,16 @@ abstract class AvroTypeIO[T: TypeTag] {
     * the supplied binary stream.
     */
   @throws[AvroDeserializationException[_]]
-  final def read(stream: InputStream, writerSchema: Option[Schema] = None): Try[T] = Try {
-    val decoder = DecoderFactory.get.directBinaryDecoder(stream, null)
-    writerSchema.map(read(decoder, mutable.ArrayBuffer[Any](), true, _))
-      .getOrElse(read(decoder, mutable.ArrayBuffer[Any](), true))
+  final def read[D, S](data: D, writerSchema: S)(implicit d: ToStream[D], s: ToSchema[S]): Try[T] = read(data, Option(writerSchema))
+
+  @throws[AvroDeserializationException[_]]
+  final def read[D, S](data: D, writerSchema: Option[S] = Option.empty[Schema])(implicit d: ToStream[D], s: ToSchema[S]): Try[T] = {
+    Try {
+      val decoder = DecoderFactory.get.directBinaryDecoder(d.stream(data), null)
+      writerSchema.map { schema =>
+        read(decoder, mutable.ArrayBuffer[Any](), true, s.schema(schema))
+      } getOrElse read(decoder, mutable.ArrayBuffer[Any](), true)
+    }
   }
 
   /**
@@ -191,5 +199,29 @@ object AvroTypeIO {
       case t: AvroUnion[_, _]        => avroTypeToIO(t)
     }
   }.asInstanceOf[AvroTypeIO[T]]
+
+  trait ToStream[-D] {
+    def stream(d: D): InputStream
+  }
+  object ToStream {
+    implicit object InputToStream extends ToStream[InputStream] {
+      override def stream(d: InputStream): InputStream = d
+    }
+    implicit object BytesToStream extends ToStream[Array[Byte]] {
+      override def stream(d: Array[Byte]): InputStream = new ByteArrayInputStream(d)
+    }
+  }
+
+  trait ToSchema[S] {
+    def schema(s: S): Schema
+  }
+  object ToSchema {
+    implicit object StringToSchema extends ToSchema[String] {
+      override def schema(s: String): Schema = new Parser().parse(s)
+    }
+    implicit object DefaultToSchema extends ToSchema[Schema] {
+      override def schema(s: Schema): Schema = s
+    }
+  }
 
 }
