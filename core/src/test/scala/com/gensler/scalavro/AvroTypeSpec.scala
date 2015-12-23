@@ -1,5 +1,7 @@
 package com.gensler.scalavro.test
 
+import gnieh.diffson.JsonDiff
+
 import scala.collection.mutable
 import scala.util.{ Try, Success, Failure }
 import scala.reflect.runtime.universe._
@@ -46,22 +48,22 @@ class AvroTypeSpec extends AvroSpec {
   it should "return valid AvroArray types for Seqs" in {
     AvroType.fromType[Seq[Int]] match {
       case Success(avroType) => {
-        avroType.isInstanceOf[AvroArray[_, _]] should be (true)
-        typeOf[avroType.scalaType] =:= typeOf[Seq[Int]] should be (true)
+        avroType.isInstanceOf[AvroArray[_, _]] should be(true)
+        typeOf[avroType.scalaType] =:= typeOf[Seq[Int]] should be(true)
       }
       case Failure(cause) => throw cause
     }
 
     AvroType[IndexedSeq[String]] match {
       case avroType: AvroArray[_, _] => {
-        avroType.originalTypeTag.tpe =:= typeOf[IndexedSeq[String]] should be (true)
+        avroType.originalTypeTag.tpe =:= typeOf[IndexedSeq[String]] should be(true)
       }
       case _ => fail
     }
 
     AvroType[Vector[Float]] match {
       case avroType: AvroArray[_, _] => {
-        avroType.originalTypeTag.tpe =:= typeOf[Vector[Float]] should be (true)
+        avroType.originalTypeTag.tpe =:= typeOf[Vector[Float]] should be(true)
       }
       case _ => fail
     }
@@ -69,31 +71,35 @@ class AvroTypeSpec extends AvroSpec {
     import scala.collection.mutable.ArrayBuffer
     AvroType[ArrayBuffer[Boolean]] match {
       case avroType: AvroArray[_, _] => {
-        avroType.originalTypeTag.tpe =:= typeOf[ArrayBuffer[Boolean]] should be (true)
+        avroType.originalTypeTag.tpe =:= typeOf[ArrayBuffer[Boolean]] should be(true)
       }
       case _ => fail
     }
 
     AvroType.fromType[Seq[Seq[Seq[Byte]]]] match {
       case Success(avroType) => {
-        avroType.isInstanceOf[AvroArray[_, _]] should be (true)
-        typeOf[avroType.scalaType] =:= typeOf[Seq[Seq[Seq[Byte]]]] should be (true)
+        avroType.isInstanceOf[AvroArray[_, _]] should be(true)
+        typeOf[avroType.scalaType] =:= typeOf[Seq[Seq[Seq[Byte]]]] should be(true)
       }
       case Failure(cause) => throw cause
     }
+  }
+  it should "return valid AvroArray type for seq of records" in {
 
-    AvroType[Seq[SantaList]].schema.toString should equal ("""
+    val diff = JsonDiff.diff(AvroType[Seq[SantaList]].schema.toString, """
 {
   "type": "array",
   "items": [{
-    "name": "com.gensler.scalavro.test.SantaList",
+    "name": "SantaList",
+    "namespace": "com.gensler.scalavro.test",
     "type": "record",
     "fields": [{
       "name": "nice",
       "type": {
         "type": "array",
         "items": [{
-          "name": "com.gensler.scalavro.test.Person",
+          "name": "Person",
+          "namespace": "com.gensler.scalavro.test",
           "type": "record",
           "fields": [{
             "name": "name",
@@ -103,7 +109,8 @@ class AvroTypeSpec extends AvroSpec {
             "type": "int"
           }]
         }, {
-          "name": "com.gensler.scalavro.Reference",
+          "name": "Reference",
+          "namespace": "com.gensler.scalavro",
           "type": "record",
           "fields": [{
             "name": "id",
@@ -120,8 +127,9 @@ class AvroTypeSpec extends AvroSpec {
     }]
   }, "com.gensler.scalavro.Reference"]
 }
-""".replaceAll("\\s", ""))
+""")
 
+    diff.ops shouldBe empty
   }
 
   // sets
@@ -244,19 +252,23 @@ class AvroTypeSpec extends AvroSpec {
   }
 
   it should "allow circular dependencies among AvroRecord types" in {
-    AvroType[A].schema.toString should equal ("""
+
+    JsonDiff.diff(AvroType[A].schema.toString, """
 {
-  "name": "com.gensler.scalavro.test.A",
+  "name": "A",
+  "namespace": "com.gensler.scalavro.test",
   "type": "record",
   "fields": [{
     "name": "b",
     "type": [{
-      "name": "com.gensler.scalavro.test.B",
+      "name": "B",
+      "namespace": "com.gensler.scalavro.test",
       "type": "record",
       "fields": [{
         "name": "a",
         "type": ["com.gensler.scalavro.test.A", {
-          "name": "com.gensler.scalavro.Reference",
+          "name": "Reference",
+          "namespace": "com.gensler.scalavro",
           "type": "record",
           "fields": [{
             "name": "id",
@@ -267,21 +279,24 @@ class AvroTypeSpec extends AvroSpec {
     }, "com.gensler.scalavro.Reference"]
   }]
 }
-""".replaceAll("\\s", ""))
+""").ops shouldBe empty
 
-    AvroType[B].schema.toString should equal ("""
+    JsonDiff.diff(AvroType[B].schema.toString, """
 {
-  "name": "com.gensler.scalavro.test.B",
+  "name": "B",
+  "namespace": "com.gensler.scalavro.test",
   "type": "record",
   "fields": [{
     "name": "a",
     "type": [{
-      "name": "com.gensler.scalavro.test.A",
+      "name": "A",
+      "namespace": "com.gensler.scalavro.test",
       "type": "record",
       "fields": [{
         "name": "b",
         "type": ["com.gensler.scalavro.test.B", {
-          "name": "com.gensler.scalavro.Reference",
+          "name": "Reference",
+          "namespace": "com.gensler.scalavro",
           "type": "record",
           "fields": [{
             "name": "id",
@@ -292,14 +307,14 @@ class AvroTypeSpec extends AvroSpec {
     }, "com.gensler.scalavro.Reference"]
   }]
 }
-""".replaceAll("\\s", ""))
-
+""").ops shouldBe empty
   }
 
   it should "expose class-level default arguments in generated schemas" in {
-    AvroType[Exclamation].schema.toString should equal ("""
+    JsonDiff.diff(AvroType[Exclamation].schema.toString, """
 {
-  "name": "com.gensler.scalavro.test.Exclamation",
+  "name": "Exclamation",
+  "namespace": "com.gensler.scalavro.test",
   "type": "record",
   "fields": [{
     "name": "volume",
@@ -310,7 +325,7 @@ class AvroTypeSpec extends AvroSpec {
     "default": "Eureka!"
   }]
 }
-    """.replaceAll("\\s", ""))
+    """).ops shouldBe empty
   }
 
 }

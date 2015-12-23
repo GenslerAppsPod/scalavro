@@ -35,10 +35,14 @@ class AvroRecord[T: TypeTag](
       resolvedSymbols += this.fullyQualifiedName
 
       val requiredParams = ListMap(
-        "name" -> fullyQualifiedName.toJson,
+        "name" -> name.toJson,
         "type" -> typeName.toJson,
         "fields" -> fields.map { _.selfContainedSchema(resolvedSymbols) }.toJson
       )
+
+      val optionalParams = ListMap(
+        "namespace" -> namespace
+      ).collect { case (k, Some(v)) => (k, v.toJson) }
 
       val aliasesParam = ListMap("aliases" -> aliases).collect {
         case (k, s) if s.nonEmpty => (k, s.toJson)
@@ -48,7 +52,7 @@ class AvroRecord[T: TypeTag](
         case (k, Some(v)) => (k, v.toJson)
       }
 
-      new JsObject(requiredParams ++ aliasesParam ++ docParam)
+      new JsObject(requiredParams ++ optionalParams ++ aliasesParam ++ docParam)
     }
   }
 
