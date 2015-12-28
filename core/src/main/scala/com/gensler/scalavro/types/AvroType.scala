@@ -195,6 +195,7 @@ object AvroType {
       typeOf[java.lang.Boolean] -> AvroJavaBoolean,
       typeOf[Seq[Byte]] -> AvroBytes, // TODO: handle arbitrary subclasses of Seq[Byte]
       typeOf[immutable.Seq[Byte]] -> AvroBytes, // TODO: handle arbitrary subclasses of Seq[Byte]
+      typeOf[Array[Byte]] -> AvroByteArray,
       typeOf[Double] -> AvroDouble,
       typeOf[java.lang.Double] -> AvroJavaDouble,
       typeOf[Float] -> AvroFloat,
