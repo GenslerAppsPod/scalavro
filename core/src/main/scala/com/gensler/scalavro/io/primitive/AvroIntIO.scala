@@ -2,6 +2,7 @@ package com.gensler.scalavro.io.primitive
 
 import com.gensler.scalavro.types.primitive.AvroInt
 import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
+import org.apache.avro.Schema
 
 import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
 
@@ -23,7 +24,7 @@ trait AvroIntIO extends AvroPrimitiveTypeIO[Int] {
     value: Int,
     encoder: BinaryEncoder): Unit = encoder writeInt value
 
-  def read(decoder: BinaryDecoder) = decoder.readInt
+  override protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]) = decoder.readInt
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING

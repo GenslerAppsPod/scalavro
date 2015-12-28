@@ -2,6 +2,7 @@ package com.gensler.scalavro.io.primitive
 
 import com.gensler.scalavro.types.primitive.AvroJavaShort
 import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
+import org.apache.avro.Schema
 
 import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
 
@@ -30,11 +31,7 @@ trait AvroJavaShortIO extends AvroNullablePrimitiveTypeIO[java.lang.Short] {
       encoder writeInt value.toInt
     }
 
-  def read(decoder: BinaryDecoder): java.lang.Short =
-    AvroLongIO.read(decoder) match {
-      case UNION_INDEX_NULL  => null
-      case UNION_INDEX_VALUE => decoder.readInt.toShort
-    }
+  override private[scalavro] def readNotNull(decoder: BinaryDecoder, writerSchema: Option[Schema]) = AvroShortIO.read(decoder, writerSchema)
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING

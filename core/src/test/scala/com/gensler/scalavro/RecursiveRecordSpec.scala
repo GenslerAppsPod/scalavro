@@ -2,6 +2,7 @@ package com.gensler.scalavro.test
 
 import com.gensler.scalavro.types.AvroType
 import com.gensler.scalavro.types.complex.AvroRecord
+import gnieh.diffson.JsonDiff
 
 import scala.collection.mutable
 import scala.util.{ Try, Success, Failure }
@@ -22,9 +23,10 @@ class RecursiveRecordSpec extends AvroSpec {
   }
 
   it should "produce a schema for a record derived from a recursively defined case class" in {
-    AvroType[SinglyLinkedStringList].schema.toString should equal ("""
+    JsonDiff.diff(AvroType[SinglyLinkedStringList].schema.toString, """
 {
-  "name": "com.gensler.scalavro.test.SinglyLinkedStringList",
+  "name": "SinglyLinkedStringList",
+  "namespace": "com.gensler.scalavro.test",
   "type": "record",
   "fields": [{
     "name": "data",
@@ -32,7 +34,8 @@ class RecursiveRecordSpec extends AvroSpec {
   }, {
     "name": "next",
     "type": ["null", ["com.gensler.scalavro.test.SinglyLinkedStringList", {
-      "name": "com.gensler.scalavro.Reference",
+      "name": "Reference",
+      "namespace": "com.gensler.scalavro",
       "type": "record",
       "fields": [{
         "name": "id",
@@ -41,8 +44,7 @@ class RecursiveRecordSpec extends AvroSpec {
     }]]
   }]
 }
-""".replaceAll("\\s", "")
-    )
+""").ops shouldBe empty
   }
 
   it should "compute dependentNamedTypes for a record derived from a recursively defined type" in {

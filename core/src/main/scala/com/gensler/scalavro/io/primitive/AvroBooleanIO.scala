@@ -2,6 +2,7 @@ package com.gensler.scalavro.io.primitive
 
 import com.gensler.scalavro.types.primitive.AvroBoolean
 import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
+import org.apache.avro.Schema
 
 import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
 
@@ -27,7 +28,7 @@ trait AvroBooleanIO extends AvroPrimitiveTypeIO[Boolean] {
     value: Boolean,
     encoder: BinaryEncoder): Unit = encoder writeBoolean value
 
-  protected[scalavro] def read(decoder: BinaryDecoder) = decoder.readBoolean
+  override protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]) = decoder.readBoolean
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING

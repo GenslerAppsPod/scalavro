@@ -1,10 +1,9 @@
 package com.gensler.scalavro.io.primitive
 
+import com.gensler.scalavro.error.AvroDeserializationException
 import com.gensler.scalavro.types.primitive.AvroJavaInteger
-import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
-
-import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
-
+import org.apache.avro.Schema
+import org.apache.avro.io.{ BinaryDecoder, BinaryEncoder }
 import spray.json._
 
 import scala.util.Try
@@ -30,11 +29,7 @@ trait AvroJavaIntegerIO extends AvroNullablePrimitiveTypeIO[java.lang.Integer] {
       encoder writeInt value
     }
 
-  def read(decoder: BinaryDecoder): java.lang.Integer =
-    AvroLongIO.read(decoder) match {
-      case UNION_INDEX_NULL  => null
-      case UNION_INDEX_VALUE => decoder.readInt
-    }
+  override private[scalavro] def readNotNull(decoder: BinaryDecoder, writerSchema: Option[Schema]) = AvroIntIO.read(decoder, writerSchema)
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING
