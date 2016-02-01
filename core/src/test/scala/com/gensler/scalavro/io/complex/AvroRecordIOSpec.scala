@@ -1,10 +1,10 @@
 package com.gensler.scalavro.io.complex.test
 
-import java.io.{PipedInputStream, PipedOutputStream}
+import java.io.{ PipedInputStream, PipedOutputStream }
 
 import com.gensler.scalavro.io.AvroTypeIO
 import com.gensler.scalavro.types._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.util.Success
 
@@ -52,7 +52,7 @@ class AvroRecordIOSpec extends FlatSpec with Matchers {
   }
 
   it should "read and write HandshakeRequest instances" in {
-    import com.gensler.scalavro.protocol.{HandshakeRequest, MD5}
+    import com.gensler.scalavro.protocol.{ HandshakeRequest, MD5 }
 
     val out = new PipedOutputStream
     val in = new PipedInputStream(out)
@@ -92,7 +92,7 @@ class AvroRecordIOSpec extends FlatSpec with Matchers {
     val out = new PipedOutputStream
     val in = new PipedInputStream(out)
 
-    import com.gensler.scalavro.test.{SinglyLinkedStringList => LL}
+    import com.gensler.scalavro.test.{ SinglyLinkedStringList => LL }
 
     val listIO = AvroType[LL].io
 

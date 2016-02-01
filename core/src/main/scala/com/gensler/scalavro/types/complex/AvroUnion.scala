@@ -1,16 +1,13 @@
 package com.gensler.scalavro.types.complex
 
-import com.gensler.scalavro.types.{ AvroType, AvroComplexType }
 import com.gensler.scalavro.JsonSchemaProtocol._
-import com.gensler.scalavro.util.ReflectionHelpers
-
-import com.gensler.scalavro.util.Union
+import com.gensler.scalavro.types.{ AvroComplexType, AvroNullablePrimitiveType, AvroType }
+import com.gensler.scalavro.util.{ ReflectionHelpers, Union }
 import com.gensler.scalavro.util.Union.union
-
-import scala.reflect.runtime.universe._
-import scala.collection.mutable
-
 import spray.json._
+
+import scala.collection.mutable
+import scala.reflect.runtime.universe._
 
 /**
   * Represents a mapping from a source Scala type to a corresponding
@@ -32,8 +29,9 @@ class AvroUnion[U <: Union.not[_]: TypeTag, T](
 
   def selfContainedSchema(
     resolvedSymbols: mutable.Set[String] = mutable.Set[String]()) = {
-    memberAvroTypes.map { at =>
-      selfContainedSchemaOrFullyQualifiedName(at, resolvedSymbols)
+    memberAvroTypes.map {
+      case at: AvroNullablePrimitiveType[_] => JsString(at.typeName())
+      case at                               => selfContainedSchemaOrFullyQualifiedName(at, resolvedSymbols)
     }.toJson
   }
 
