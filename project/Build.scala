@@ -16,7 +16,7 @@ object Common {
 // DEPENDENCY VERSIONS
 //////////////////////////////////////////////////////////////////////////////
 
-  val SPRAY_JSON_VERSION = "1.2.6"
+  val SPRAY_JSON_VERSION = "1.3.2"
   val AVRO_VERSION = "1.7.6"
   val SCALATEST_VERSION = "2.2.0"
   val REFLECTIONS_VERSION = "0.9.9-RC1"

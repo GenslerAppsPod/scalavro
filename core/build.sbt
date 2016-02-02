@@ -9,4 +9,4 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "com.jayway.jsonpath" % "json-path" % "2.0.0" % "test"
 
-libraryDependencies += "org.gnieh" %% "diffson" % "1.0.0"
+libraryDependencies += "org.gnieh" %% "diffson" % "1.0.0" % "test"
