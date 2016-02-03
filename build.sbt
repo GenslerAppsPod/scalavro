@@ -29,8 +29,9 @@ scalaVersion in ThisBuild := Common.SCALA_VERSION
 
 libraryDependencies in ThisBuild ++= Seq(
       "org.scala-lang" % "scala-reflect" % Common.SCALA_VERSION,
-      "org.slf4j" % "slf4j-simple" % Common.SLF4J_VERSION,
+      "org.slf4j" % "slf4j-api" % Common.SLF4J_VERSION,
       "com.typesafe.scala-logging" %% "scala-logging" % Common.SCALA_LOGGING_VERSION,
+      "org.slf4j" % "slf4j-simple" % Common.SLF4J_VERSION % "test",
       "org.scalatest" %% "scalatest" % Common.SCALATEST_VERSION % "test"
     )
 
