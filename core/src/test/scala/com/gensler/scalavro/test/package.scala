@@ -1,13 +1,14 @@
 package com.gensler.scalavro
 
-import java.io.ByteArrayOutputStream
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 
 import com.gensler.scalavro.types.AvroType
 import org.apache.avro.Schema
-import org.apache.avro.generic.{ GenericData, GenericDatumWriter, GenericRecord }
-import org.apache.avro.io.EncoderFactory
+import org.apache.avro.generic.{ GenericDatumReader, GenericData, GenericDatumWriter, GenericRecord }
+import org.apache.avro.io.{ DecoderFactory, EncoderFactory }
 
 import scala.reflect.runtime.universe._
+import scala.util.Success
 
 package object test {
 
@@ -27,6 +28,17 @@ package object test {
     val out = new ByteArrayOutputStream()
     AvroType[T].io.write(record, out)
     out.toByteArray
+  }
+
+  def read[T: TypeTag](data: Array[Byte]): T = {
+    val Success(result) = AvroType[T].io.read(new ByteArrayInputStream(data))
+    result
+  }
+
+  def read(data: Array[Byte], schema: Schema): GenericData.Record = {
+    val datumReader = new GenericDatumReader[GenericData.Record](schema)
+    val decoder = DecoderFactory.get.directBinaryDecoder(new ByteArrayInputStream(data), null)
+    datumReader.read(null, decoder)
   }
 
   def toHex(data: Array[Byte]) = {

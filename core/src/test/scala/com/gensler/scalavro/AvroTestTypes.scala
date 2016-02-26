@@ -65,6 +65,7 @@ object Color {
 }
 
 case class Car(name: String, color: Color)
+case class Avatar(image: Array[Byte])
 
 object Direction extends Enumeration {
   type Direction = Value
