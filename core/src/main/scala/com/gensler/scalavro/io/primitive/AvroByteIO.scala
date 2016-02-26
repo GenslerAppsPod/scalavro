@@ -1,10 +1,9 @@
 package com.gensler.scalavro.io.primitive
 
+import com.gensler.scalavro.error.AvroDeserializationException
 import com.gensler.scalavro.types.primitive.AvroByte
-import com.gensler.scalavro.error.{ AvroSerializationException, AvroDeserializationException }
-
-import org.apache.avro.io.{ BinaryEncoder, BinaryDecoder }
-
+import org.apache.avro.Schema
+import org.apache.avro.io.{ BinaryDecoder, BinaryEncoder }
 import spray.json._
 
 import scala.util.Try
@@ -23,7 +22,7 @@ trait AvroByteIO extends AvroPrimitiveTypeIO[Byte] {
     value: Byte,
     encoder: BinaryEncoder): Unit = encoder writeInt value.toInt
 
-  def read(decoder: BinaryDecoder) = decoder.readInt.toByte
+  override protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]) = decoder.readInt.toByte
 
   ////////////////////////////////////////////////////////////////////////////
   // JSON ENCODING
