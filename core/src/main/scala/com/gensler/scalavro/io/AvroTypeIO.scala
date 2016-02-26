@@ -147,6 +147,7 @@ object AvroTypeIO {
     avroType match {
       case AvroBoolean       => AvroBooleanIO
       case AvroBytes         => AvroBytesIO
+      case AvroByteArray     => AvroByteArrayIO
       case AvroDouble        => AvroDoubleIO
       case AvroFloat         => AvroFloatIO
       case AvroByte          => AvroByteIO
