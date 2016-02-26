@@ -32,7 +32,7 @@ trait AvroByteArrayIO extends AvroPrimitiveTypeIO[Array[Byte]] {
     buffer
   }
 
-  protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]): Array[Byte] =
+  override protected[scalavro] def read(decoder: BinaryDecoder, writerSchema: Option[Schema]): Array[Byte] =
     writerSchema.map({ schema =>
       schema.getType match {
         case Schema.Type.STRING | Schema.Type.BYTES => readBytes(decoder)
